@@ -7,6 +7,9 @@ const SkillTree = () => {
   const [activeNodes, setActiveNodes] = useState([])
   const [particles, setParticles] = useState([])
 
+  const DIAGRAM_W = 850
+  const DIAGRAM_H = 540
+
   const nodes = {
     "Web Development": { x: 425, y: 60, type: 'pill' },
     "Front-End": { x: 200, y: 160, type: 'pill' },
@@ -24,10 +27,50 @@ const SkillTree = () => {
     "Web-Based": { x: 590, y: 470, type: 'chip' }
   }
 
+  const labelWidth = (text, type) => {
+    const len = (text || '').length
+    if (type === 'pill') return Math.max(140, len * 9 + 44)
+    return Math.max(68, len * 8 + 28)
+  }
+
+  const nodeBox = (name, node) => {
+    const w = labelWidth(name, node.type)
+    const h = node.type === 'pill' ? 44 : 36
+    return { x: node.x - w / 2, y: node.y - h / 2, w, h }
+  }
+
+  const computedNodes = (() => {
+    const next = { ...nodes }
+    const avg = (xs) => xs.reduce((a, b) => a + b, 0) / xs.length
+
+    const layoutRow = (names, centerX, y, gap) => {
+      const widths = names.map((n) => labelWidth(n, 'chip'))
+      const total = widths.reduce((a, b) => a + b, 0) + gap * (names.length - 1)
+      let cursor = centerX - total / 2
+      names.forEach((n, i) => {
+        const w = widths[i]
+        next[n] = { ...next[n], x: cursor + w / 2, y }
+        cursor += w + gap
+      })
+    }
+
+    // Space out chip rows so labels don't feel cramped on web/mobile
+    layoutRow(['HTML', 'CSS', 'JS', 'React'], avg([nodes['HTML'].x, nodes['CSS'].x, nodes['JS'].x, nodes['React'].x]), nodes['HTML'].y, 22)
+    layoutRow(['Django', 'Node.js', 'MongoDB', 'PostgreSQL'], avg([nodes['Django'].x, nodes['Node.js'].x, nodes['MongoDB'].x, nodes['PostgreSQL'].x]), nodes['Django'].y, 22)
+    layoutRow(['RESTful', 'Web-Based'], avg([nodes['RESTful'].x, nodes['Web-Based'].x]), nodes['RESTful'].y, 22)
+
+    next['Front-End'] = { ...next['Front-End'], x: avg([next['HTML'].x, next['CSS'].x, next['JS'].x, next['React'].x]) }
+    next['Back-End'] = { ...next['Back-End'], x: avg([next['Django'].x, next['Node.js'].x, next['MongoDB'].x, next['PostgreSQL'].x]) }
+    next['APIs'] = { ...next['APIs'], x: avg([next['RESTful'].x, next['Web-Based'].x]) }
+    next['Web Development'] = { ...next['Web Development'], x: avg([next['Front-End'].x, next['Back-End'].x]) }
+
+    return next
+  })()
+
   const halfHeight = (node) => (node?.type === 'pill' ? 22 : 18)
 
   const anchor = (name, side) => {
-    const n = nodes[name]
+    const n = computedNodes[name]
     if (!n) return { x: 0, y: 0 }
     const hh = halfHeight(n)
     return { x: n.x, y: side === 'bottom' ? n.y + hh : n.y - hh }
@@ -75,7 +118,7 @@ const SkillTree = () => {
 
   return (
     <section ref={ref} className="py-24 bg-gray-50 dark:bg-gray-800">
-      <div className="max-w-6xl mx-auto px-6">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
@@ -90,16 +133,20 @@ const SkillTree = () => {
           </p>
         </motion.div>
 
-        <div className="relative overflow-x-auto pb-8">
-          <div className="min-w-[850px] h-[540px] relative mx-auto bg-gradient-to-b from-white to-violet-50/50 dark:from-gray-900 dark:to-gray-800 rounded-3xl p-8 shadow-xl border border-gray-100 dark:border-gray-700">
-            <svg className="absolute inset-0 w-full h-full pointer-events-none">
+        <div className="relative pb-8">
+          <div className="relative mx-auto overflow-hidden bg-gradient-to-b from-white to-violet-50/50 dark:from-gray-900 dark:to-gray-800 rounded-3xl p-4 sm:p-6 shadow-xl border border-gray-100 dark:border-gray-700">
+            <svg
+              viewBox={`0 0 ${DIAGRAM_W} ${DIAGRAM_H}`}
+              preserveAspectRatio="xMidYMid meet"
+              className="w-full h-auto"
+            >
               <defs>
-                <filter id="glow">
-                  <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-                  <feMerge>
-                    <feMergeNode in="coloredBlur"/>
-                    <feMergeNode in="SourceGraphic"/>
-                  </feMerge>
+                <linearGradient id="pillGradient" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor="#d946ef" />
+                  <stop offset="100%" stopColor="#6366f1" />
+                </linearGradient>
+                <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feDropShadow dx="0" dy="6" stdDeviation="6" floodColor="#000000" floodOpacity="0.10" />
                 </filter>
               </defs>
 
@@ -196,36 +243,45 @@ const SkillTree = () => {
                   />
                 )
               })()}
-            </svg>
 
-            {Object.entries(nodes).map(([name, data]) => (
-              <motion.div
-                key={name}
-                className="absolute"
-                style={{ left: data.x, top: data.y, transform: 'translate(-50%, -50%)' }}
-                initial={{ scale: 0, opacity: 0 }}
-                animate={activeNodes.includes(name) ? { scale: 1, opacity: 1 } : {}}
-                transition={{ type: "spring", stiffness: 400, damping: 25, delay: Object.keys(nodes).indexOf(name) * 0.04 }}
-              >
-                {data.type === 'pill' ? (
-                  <motion.div
-                    className="px-5 py-2.5 rounded-2xl text-white text-sm font-semibold shadow-lg cursor-pointer bg-gradient-to-r from-fuchsia-500 to-indigo-500"
-                    whileHover={{ scale: 1.05 }}
-                    transition={{ duration: 0.15 }}
+              {Object.entries(computedNodes).map(([name, data]) => {
+                const active = activeNodes.includes(name)
+                const b = nodeBox(name, data)
+                const isPill = data.type === 'pill'
+                return (
+                  <motion.g
+                    key={name}
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={active ? { opacity: 1, scale: 1 } : {}}
+                    transition={{ type: 'spring', stiffness: 400, damping: 25, delay: Object.keys(computedNodes).indexOf(name) * 0.04 }}
+                    style={{ transformOrigin: `${data.x}px ${data.y}px` }}
+                    filter={isPill ? 'url(#softShadow)' : undefined}
                   >
-                    {name}
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    className="px-4 py-2 rounded-xl text-sm font-medium bg-white border border-violet-200 text-violet-700 shadow-sm dark:bg-gray-800 dark:border-violet-700 dark:text-violet-300 cursor-pointer"
-                    whileHover={{ scale: 1.05, borderColor: '#a855f7' }}
-                    transition={{ duration: 0.15 }}
-                  >
-                    {name}
-                  </motion.div>
-                )}
-              </motion.div>
-            ))}
+                    <rect
+                      x={b.x}
+                      y={b.y}
+                      width={b.w}
+                      height={b.h}
+                      rx={isPill ? 18 : 12}
+                      fill={isPill ? 'url(#pillGradient)' : '#ffffff'}
+                      stroke={isPill ? 'rgba(255,255,255,0.0)' : '#d8b4fe'}
+                      strokeWidth={isPill ? 0 : 1}
+                    />
+                    <text
+                      x={data.x}
+                      y={data.y + 1}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      fontSize={isPill ? 14 : 13}
+                      fontWeight={isPill ? 700 : 600}
+                      fill={isPill ? '#ffffff' : '#7c3aed'}
+                    >
+                      {name}
+                    </text>
+                  </motion.g>
+                )
+              })}
+            </svg>
           </div>
         </div>
 
