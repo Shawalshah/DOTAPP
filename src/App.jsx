@@ -7,10 +7,13 @@ import HowWeUnderstand from './components/HowWeUnderstand'
 import WhatMakesDifferent from './components/WhatMakesDifferent'
 import Pricing from './components/Pricing'
 import ReadyCTA from './components/ReadyCTA'
+import Support from './components/Support'
+import Contact from './components/Contact'
 import Footer from './components/Footer'
 
 function App() {
   const [darkMode, setDarkMode] = useState(false)
+  const [hash, setHash] = useState(() => window.location.hash || '#')
 
   useEffect(() => {
     if (darkMode) {
@@ -20,17 +23,38 @@ function App() {
     }
   }, [darkMode])
 
+  useEffect(() => {
+    const onHashChange = () => setHash(window.location.hash || '#')
+    window.addEventListener('hashchange', onHashChange)
+    return () => window.removeEventListener('hashchange', onHashChange)
+  }, [])
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'smooth' })
+  }, [hash])
+
+  const isSupport = String(hash || '').startsWith('#support')
+  const isContact = String(hash || '').startsWith('#contact')
+
   return (
     <div className={`min-h-screen ${darkMode ? 'dark bg-gray-900' : 'bg-white'}`}>
       <Header darkMode={darkMode} setDarkMode={setDarkMode} />
       <main>
-        <Hero />
-        <SkillTree />
-        <Features />
-        <HowWeUnderstand />
-        <WhatMakesDifferent />
-        <Pricing />
-        <ReadyCTA />
+        {isSupport ? (
+          <Support />
+        ) : isContact ? (
+          <Contact />
+        ) : (
+          <>
+            <Hero />
+            <SkillTree />
+            <Features />
+            <HowWeUnderstand />
+            <WhatMakesDifferent />
+            <Pricing />
+            <ReadyCTA />
+          </>
+        )}
       </main>
       <Footer />
     </div>

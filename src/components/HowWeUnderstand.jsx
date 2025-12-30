@@ -1,23 +1,154 @@
 import { motion, useInView } from 'framer-motion'
 import { useRef, useState } from 'react'
-import { User, GraduationCap, Lightbulb, Target } from 'lucide-react'
 
 const HowWeUnderstand = () => {
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: "-100px" })
   const [active, setActive] = useState(0)
 
-  const dots = [
-    { icon: User, title: "Personal Information", desc: "We learn about your background, preferences, and how you like to learn best." },
-    { icon: GraduationCap, title: "Your Education", desc: "Understanding your educational background helps us identify where to start." },
-    { icon: Lightbulb, title: "Your Skills", desc: "We map your existing skills to identify strengths and growth opportunities." },
-    { icon: Target, title: "Your Goal", desc: "Your goals drive our recommendations and shape your personalized learning path." }
+  const DIAGRAM_W = 1180
+  const DIAGRAM_H = 460
+
+  // Node definitions
+  const nodes = [
+    { id: 'you', x: 120, y: 230, r: 50, label: 'YOU', type: 'root', icon: 'person', textOffsetY: 20 },
+    
+    { id: 'info1', x: 320, y: 90, r: 34, label: 'Personal Info', type: 'dot', dotIndex: 0 },
+    { id: 'info2', x: 320, y: 170, r: 34, label: 'Your Education', type: 'dot', dotIndex: 1 },
+    { id: 'info3', x: 320, y: 250, r: 34, label: 'Your Skills', type: 'dot', dotIndex: 2 },
+    { id: 'info4', x: 320, y: 330, r: 34, label: 'Your Goal', type: 'dot', dotIndex: 3 },
+    
+    { id: 'mentor', x: 520, y: 230, r: 46, label: 'DOT\nMentor', type: 'mentor' },
+    { id: 'mentorship', x: 690, y: 230, r: 52, label: 'Courses', type: 'mentorship' },
+    
+    { id: 'topic1', x: 1000, y: 70, r: 32, label: 'Web\nDevelopment', type: 'topic' },
+    { id: 'topic2', x: 1000, y: 150, r: 32, label: 'Data\nScience', type: 'topic' },
+    { id: 'topic3', x: 1000, y: 230, r: 32, label: 'AI', type: 'topic' },
+    { id: 'topic4', x: 1000, y: 310, r: 32, label: 'Python\nProgramming', type: 'topic' },
+    { id: 'topic5', x: 1000, y: 390, r: 32, label: 'Machine\nLearning', type: 'topic' },
   ]
 
+  const connections = [
+    { from: 'you', to: 'info1' },
+    { from: 'you', to: 'info2' },
+    { from: 'you', to: 'info3' },
+    { from: 'you', to: 'info4' },
+    { from: 'info1', to: 'mentor' },
+    { from: 'info2', to: 'mentor' },
+    { from: 'info3', to: 'mentor' },
+    { from: 'info4', to: 'mentor' },
+    { from: 'mentor', to: 'mentorship' },
+    { from: 'mentorship', to: 'topic1' },
+    { from: 'mentorship', to: 'topic2' },
+    { from: 'mentorship', to: 'topic3' },
+    { from: 'mentorship', to: 'topic4' },
+    { from: 'mentorship', to: 'topic5' },
+  ]
+
+  const dotIndexFromId = (id) => {
+    if (id === 'info1') return 0
+    if (id === 'info2') return 1
+    if (id === 'info3') return 2
+    if (id === 'info4') return 3
+    return -1
+  }
+
+  const topicIndexFromId = (id) => {
+    if (id === 'topic1') return 0
+    if (id === 'topic2') return 1
+    if (id === 'topic3') return 2
+    if (id === 'topic4') return 3
+    if (id === 'topic5') return 4
+    return -1
+  }
+
+  const getNode = (id) => nodes.find(n => n.id === id)
+
+  const getNodeColor = (type, dotIndex) => {
+    if (type === 'dot' && dotIndex === active) {
+      return { fill: 'url(#activeGrad)', stroke: '#7c3aed', ring: '#c4b5fd' }
+    }
+    switch (type) {
+      case 'root': return { fill: 'url(#rootGrad)', stroke: '#7c3aed', ring: '#c4b5fd' }
+      case 'dot': return { fill: '#ffffff', stroke: '#94a3b8', ring: '#e2e8f0' }
+      case 'mentor': return { fill: '#ffffff', stroke: '#6366f1', ring: '#a5b4fc' }
+      case 'mentorship': return { fill: 'url(#mentorshipGrad)', stroke: '#ec4899', ring: '#f9a8d4' }
+      case 'topic': return { fill: '#ffffff', stroke: '#22c55e', ring: '#86efac' }
+      default: return { fill: '#ffffff', stroke: '#e5e7eb', ring: '#f3f4f6' }
+    }
+  }
+
+  const getLineColor = (fromType, toType) => {
+    if (fromType === 'root' || toType === 'dot') return '#a78bfa'
+    if (fromType === 'dot') return '#94a3b8'
+    if (fromType === 'mentor') return '#6366f1'
+    if (fromType === 'mentorship') return '#22c55e'
+    return '#e5e7eb'
+  }
+
+  const renderMultilineText = (node, color = '#111827') => {
+    const lines = String(node.label || '').split('\n').filter(Boolean)
+    if (lines.length === 0) return null
+    const lineHeight = node.type === 'dot' ? 11 : (node.type === 'topic' ? 10 : 13)
+    const baseY = node.y + (node.textOffsetY || 0) + (node.type === 'topic' ? -1 : 0)
+
+    const dotFontSize = (() => {
+      if (node.type !== 'dot') return null
+      const text = String(node.label || '')
+      if (text.length >= 13) return 8.6
+      if (text.length >= 11) return 9.2
+      return 10.2
+    })()
+
+    return (
+      <text
+        x={node.x}
+        y={baseY - ((lines.length - 1) * lineHeight) / 2}
+        textAnchor="middle"
+        dominantBaseline="middle"
+        fontSize={node.type === 'dot' ? dotFontSize : (node.type === 'topic' ? (lines.length >= 2 ? 9.1 : 10) : (node.r >= 48 ? 13 : 11))}
+        fontWeight={700}
+        fill={color}
+      >
+        {lines.map((line, i) => (
+          <tspan key={i} x={node.x} dy={i === 0 ? 0 : lineHeight}>
+            {line}
+          </tspan>
+        ))}
+      </text>
+    )
+  }
+
+  const connectorPath = (from, to) => {
+    if (from.id === 'mentorship' && String(to.id).startsWith('topic')) {
+      const idx = topicIndexFromId(to.id)
+      const spread = [-36, -18, 0, 18, 36]
+      const s = spread[idx] ?? 0
+      const dx = to.x - from.x
+      const dy = to.y - from.y
+      const startX = from.x + from.r
+      const startY = from.y + s * 0.25
+      const endX = to.x - to.r
+      const endY = to.y
+      const cx = from.x + dx * 0.55
+      const cy = from.y + dy * 0.7 + s
+      return `M ${startX} ${startY} Q ${cx} ${cy} ${endX} ${endY}`
+    }
+    const dx = to.x - from.x
+    const dy = to.y - from.y
+    const dist = Math.sqrt(dx * dx + dy * dy)
+    const ux = dx / dist
+    const uy = dy / dist
+    const x1 = from.x + ux * from.r
+    const y1 = from.y + uy * from.r
+    const x2 = to.x - ux * to.r
+    const y2 = to.y - uy * to.r
+    return `M ${x1} ${y1} L ${x2} ${y2}`
+  }
+
   return (
-    <section ref={ref} className="relative py-24 bg-white dark:bg-gray-900 border-y border-gray-100 dark:border-gray-800 overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(99,102,241,0.10),transparent_55%)] dark:bg-[radial-gradient(ellipse_at_top,rgba(99,102,241,0.14),transparent_60%)]" />
-      <div className="relative max-w-6xl mx-auto px-6">
+    <section ref={ref} className="py-24 bg-gray-50 dark:bg-gray-800">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
@@ -32,108 +163,141 @@ const HowWeUnderstand = () => {
           </p>
         </motion.div>
 
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          {/* Visual */}
-          <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            animate={isInView ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="relative order-2 lg:order-1"
-          >
-            <div className="relative w-full max-w-md mx-auto aspect-square">
-              {/* Center */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full bg-gradient-to-r from-fuchsia-500 to-indigo-500 flex items-center justify-center z-10 shadow-lg shadow-indigo-500/20">
-                <span className="text-white font-bold text-lg">YOU</span>
-              </div>
+        {/* SVG Diagram */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="relative pb-8"
+        >
+          <div className="relative mx-auto overflow-x-auto bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 rounded-3xl p-4 sm:p-8 shadow-xl border border-gray-100 dark:border-gray-700">
+            <svg
+              viewBox={`0 0 ${DIAGRAM_W} ${DIAGRAM_H}`}
+              preserveAspectRatio="xMidYMid meet"
+              className="w-full h-auto min-w-[900px] md:min-w-0 max-w-5xl mx-auto"
+            >
+              <defs>
+                <linearGradient id="rootGrad" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#d946ef" />
+                  <stop offset="100%" stopColor="#6366f1" />
+                </linearGradient>
+                <linearGradient id="activeGrad" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#d946ef" />
+                  <stop offset="100%" stopColor="#6366f1" />
+                </linearGradient>
+                <linearGradient id="mentorshipGrad" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#ec4899" />
+                  <stop offset="100%" stopColor="#8b5cf6" />
+                </linearGradient>
+                <filter id="nodeShadow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feDropShadow dx="0" dy="4" stdDeviation="6" floodColor="#000000" floodOpacity="0.1" />
+                </filter>
+              </defs>
 
-              {/* Rings */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 rounded-full border-2 border-indigo-200/70 dark:border-indigo-800/50"></div>
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-60 h-60 rounded-full border border-indigo-100/60 dark:border-indigo-900/50"></div>
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 rounded-full border border-gray-200/70 dark:border-gray-700/70"></div>
+              {/* Connection lines */}
+              {connections.map((conn, idx) => {
+                const from = getNode(conn.from)
+                const to = getNode(conn.to)
+                if (!from || !to) return null
 
-              {/* Lines */}
-              <svg className="absolute inset-0 w-full h-full">
-                {dots.map((_, i) => {
-                  const angle = (i * 90 - 45) * (Math.PI / 180)
-                  const endX = 50 + Math.cos(angle) * 38
-                  const endY = 50 + Math.sin(angle) * 38
-                  return (
-                    <line
-                      key={i}
-                      x1="50%" y1="50%"
-                      x2={`${endX}%`} y2={`${endY}%`}
-                      stroke={active === i ? "#6366f1" : "#e5e7eb"}
-                      strokeWidth="2"
-                      strokeDasharray="6 4"
-                      className="transition-colors duration-300"
-                    />
-                  )
-                })}
-              </svg>
+                const activeDotIndex = dotIndexFromId(conn.to)
+                const activeFromDotIndex = dotIndexFromId(conn.from)
 
-              {/* Dots */}
-              {dots.map((dot, i) => {
-                const angle = (i * 90 - 45) * (Math.PI / 180)
-                const x = 50 + Math.cos(angle) * 38
-                const y = 50 + Math.sin(angle) * 38
+                const isYouToDot = conn.from === 'you' && activeDotIndex !== -1
+                const isDotToMentor = conn.to === 'mentor' && activeFromDotIndex !== -1
+                const isMentorChain = conn.from === 'mentor' && conn.to === 'mentorship'
+
+                const isActiveLink = (isYouToDot && activeDotIndex === active) || (isDotToMentor && activeFromDotIndex === active)
+
+                const lineColor = getLineColor(from.type, to.type)
+                const d = connectorPath(from, to)
                 return (
-                  <button
-                    key={i}
-                    className="absolute transition-transform duration-300 hover:scale-110"
-                    style={{ left: `${x}%`, top: `${y}%`, transform: 'translate(-50%, -50%)' }}
-                    onClick={() => setActive(i)}
-                  >
-                    <div className={`w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg ${
-                      active === i 
-                        ? 'bg-gradient-to-r from-fuchsia-500 to-indigo-500 text-white shadow-indigo-500/25' 
-                        : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200/70 dark:border-gray-700/70'
-                    }`}>
-                      <dot.icon className="w-7 h-7" />
-                    </div>
-                  </button>
+                  <motion.path
+                    key={`line-${idx}`}
+                    d={d}
+                    stroke={lineColor}
+                    strokeWidth={isActiveLink ? 3.5 : (isMentorChain ? 3 : 2.2)}
+                    strokeLinecap="round"
+                    fill="none"
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={isInView ? { pathLength: 1, opacity: isActiveLink ? 0.95 : (isMentorChain ? 0.85 : 0.45) } : {}}
+                    transition={{ duration: 0.4, delay: 0.2 + idx * 0.05 }}
+                  />
                 )
               })}
-            </div>
-          </motion.div>
 
-          {/* Cards */}
-          <motion.div
-            initial={{ opacity: 0, x: 30 }}
-            animate={isInView ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            className="space-y-4 order-1 lg:order-2"
-          >
-            {dots.map((dot, i) => (
-              <button
-                key={i}
-                onClick={() => setActive(i)}
-                className={`w-full text-left p-5 rounded-2xl transition-all duration-300 ${
-                  active === i 
-                    ? 'bg-white dark:bg-gray-800 shadow-lg border border-indigo-200/70 dark:border-indigo-800/60' 
-                    : 'bg-white/60 dark:bg-gray-900/30 border border-gray-200/60 dark:border-gray-800 hover:bg-white dark:hover:bg-gray-900/40'
-                }`}
+              {/* Nodes */}
+              {nodes.map((node, idx) => {
+                const colors = getNodeColor(node.type, node.dotIndex)
+                const isRoot = node.type === 'root'
+                const isMentorship = node.type === 'mentorship'
+                const textColor = (isRoot || isMentorship || (node.type === 'dot' && node.dotIndex === active)) ? '#ffffff' : '#111827'
+
+                return (
+                  <motion.g
+                    key={node.id}
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={isInView ? { opacity: 1, scale: 1 } : {}}
+                    transition={{ type: 'spring', stiffness: 300, damping: 20, delay: idx * 0.06 }}
+                    style={{ transformOrigin: `${node.x}px ${node.y}px` }}
+                    onClick={() => {
+                      if (node.type === 'dot' && node.dotIndex !== undefined) {
+                        setActive(node.dotIndex)
+                      }
+                    }}
+                    className={node.type === 'dot' ? 'cursor-pointer' : ''}
+                  >
+                    {/* Outer ring */}
+                    <circle
+                      cx={node.x}
+                      cy={node.y}
+                      r={node.r + 5}
+                      fill="none"
+                      stroke={colors.ring}
+                      strokeWidth="2.5"
+                      opacity="0.5"
+                    />
+
+                    {/* Main circle */}
+                    <circle
+                      cx={node.x}
+                      cy={node.y}
+                      r={node.r}
+                      fill={colors.fill}
+                      stroke={colors.stroke}
+                      strokeWidth="2.5"
+                      filter="url(#nodeShadow)"
+                    />
+
+                    {/* Icons */}
+                    {node.icon === 'person' && (
+                      <g transform={`translate(${node.x - 16}, ${node.y - 22})`}>
+                        <circle cx="16" cy="8" r="6" fill="#ffffff" />
+                        <path d="M16 16c-6 0-10 4-10 8v2h20v-2c0-4-4-8-10-8z" fill="#ffffff" />
+                      </g>
+                    )}
+
+                    {/* Label */}
+                    {renderMultilineText(node, textColor)}
+                  </motion.g>
+                )
+              })}
+
+              {/* Mentorship subtitle label */}
+              <text
+                x={690}
+                y={305}
+                textAnchor="middle"
+                fontSize="10"
+                fontWeight="600"
+                fill="#6b7280"
+                className="dark:fill-gray-400"
               >
-                <div className="flex items-start gap-4">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${
-                    active === i 
-                      ? 'bg-gradient-to-r from-fuchsia-500 to-indigo-500 text-white' 
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-300 border border-gray-200/70 dark:border-gray-700/70'
-                  }`}>
-                    <dot.icon className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className={`font-semibold mb-1 ${active === i ? 'text-indigo-700 dark:text-indigo-300' : 'text-gray-900 dark:text-white'}`}>
-                      {dot.title}
-                    </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {dot.desc}
-                    </p>
-                  </div>
-                </div>
-              </button>
-            ))}
-          </motion.div>
-        </div>
+                Use DOTAPP · Follow AI Learning
+              </text>
+            </svg>
+          </div>
+        </motion.div>
       </div>
     </section>
   )

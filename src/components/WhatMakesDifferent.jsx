@@ -32,14 +32,14 @@ const WhatMakesDifferent = () => {
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {items.map((item, i) => (
             <motion.div
               key={item.title}
               initial={{ opacity: 0, y: 30 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.4, delay: i * 0.08 }}
-              className="group p-8 rounded-2xl bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:border-fuchsia-200 dark:hover:border-fuchsia-800 hover:shadow-lg transition-all duration-300 text-center"
+              className="group p-5 sm:p-8 rounded-2xl bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:border-fuchsia-200 dark:hover:border-fuchsia-800 hover:shadow-lg transition-all duration-300 text-center"
             >
               <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-r from-fuchsia-100 to-indigo-100 dark:from-fuchsia-900/30 dark:to-indigo-900/30 flex items-center justify-center mb-5 group-hover:from-fuchsia-200 group-hover:to-indigo-200 transition-colors">
                 <item.icon className="w-8 h-8 text-fuchsia-600 dark:text-fuchsia-400" />

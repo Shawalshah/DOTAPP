@@ -192,11 +192,13 @@ const Hero = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 dark:text-white leading-[1.1] mb-6"
+          className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 dark:text-white leading-[1.1] mb-6 break-words"
         >
-          Be a valuable <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-indigo-500">DOT</span>
-          <br />
-          <span className="whitespace-nowrap">
+          <span className="block">
+            Be a valuable{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-indigo-500">DOT</span>
+          </span>
+          <span className="block">
             then{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-indigo-500">connect</span>
             {' '}in the age of{' '}
